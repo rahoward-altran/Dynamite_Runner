@@ -1,7 +1,6 @@
 import json
 
-from dynamite.big_snip import BigSnip
-from dynamite.random_moves import RandomMoves
+from dynamite.example_bots import *
 
 WIN_COUNT = 1000
 MAX_COUNT = 2500
@@ -11,8 +10,8 @@ class DynamiteRunner:
 
     def __init__(self):
         self.move_dict = {'rounds': []}
-        self.bot_1 = BigSnip()
-        self.bot_2 = RandomMoves()
+        self.bot_1 = CycleBackwardsBot()
+        self.bot_2 = RandomNoDynamiteBot()
         self.draw_multiplier = 1
         self.bot_1_wins = 0
         self.bot_2_wins = 0
