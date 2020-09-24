@@ -1,5 +1,7 @@
 import json
 
+from dynamite.big_snip import BigSnip
+from dynamite.random_moves import RandomMoves
 
 WIN_COUNT = 1000
 MAX_COUNT = 2500
@@ -9,8 +11,8 @@ class DynamiteRunner:
 
     def __init__(self):
         self.move_dict = {'rounds': []}
-        self.bot_1 = YOUR_BOT_HERE()
-        self.bot_2 = YOUR_OTHER_BOT_HERE()
+        self.bot_1 = BigSnip()
+        self.bot_2 = RandomMoves()
         self.draw_multiplier = 1
         self.bot_1_wins = 0
         self.bot_2_wins = 0
@@ -27,7 +29,7 @@ class DynamiteRunner:
             self.do_turn()
             if self.turn_count == MAX_COUNT:
                 break
-        print("bot_1: %i, bot_2: %i" % (self.bot_1_wins, self.bot_2_wins))
+        print("bot_1: %i, bot_2: %i, turns: %i" % (self.bot_1_wins, self.bot_2_wins, self.turn_count))
 
     def bot_reached_1000_wins(self):
         return self.bot_1_wins < WIN_COUNT and self.bot_2_wins < WIN_COUNT
@@ -43,7 +45,9 @@ class DynamiteRunner:
         win_id = self.win_map[bot_1_move][bot_2_move]
         if win_id == 'W':
             self.bot_1_wins += self.draw_multiplier
+            self.draw_multiplier = 0
         elif win_id == 'L':
             self.bot_2_wins += self.draw_multiplier
+            self.draw_multiplier = 0
         else:
             self.draw_multiplier += 1
