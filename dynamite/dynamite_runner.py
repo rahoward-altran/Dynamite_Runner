@@ -24,12 +24,19 @@ class DynamiteRunner:
         self.print_buffer = []
         self.win_map = self.load_win_map()
 
+        self.bot_1_name = type(self.bot_1).__name__
+        self.bot_2_name = type(self.bot_2).__name__
+        if self.bot_1_name == self.bot_2_name:
+            self.bot_1_name += ' 1'
+            self.bot_2_name += ' 2'
+
     @staticmethod
     def load_win_map():
         with open("win_map.json") as json_file:
             return json.load(json_file)
 
     def run(self):
+        print("%s vs %s\n" % (self.bot_1_name, self.bot_2_name))
         while not self.outcome:
             self.do_turn()
             self.maybe_print_rounds()
@@ -37,27 +44,28 @@ class DynamiteRunner:
             if self.turn_count == MAX_COUNT:
                 break
         self.print_rounds()
-        print("bot_1: %i, bot_2: %i, turns: %i" % (self.bot_1_wins, self.bot_2_wins, self.turn_count))
+        print("%s: %i, %s: %i, turns: %i" % (self.bot_1_name, self.bot_1_wins,
+                                             self.bot_2_name, self.bot_2_wins, self.turn_count))
         if self.outcome:
             print(self.outcome)
 
     def check_if_bot_has_reached_1000_wins(self):
         if not self.outcome:
             if self.bot_1_wins >= WIN_COUNT:
-                self.outcome = "bot_1 wins"
+                self.outcome = "%s wins" % self.bot_1_name
             elif self.bot_2_wins >= WIN_COUNT:
-                self.outcome = "bot_2 wins"
+                self.outcome = "%s wins" % self.bot_2_name
 
     def do_turn(self):
         try:
             bot_1_move = self.bot_1.make_move(self.move_dict_1)
         except BaseException as e:
-            self.outcome = "bot_1 threw an exception {}".format(e)
+            self.outcome = "{} threw an exception {}".format(self.bot_1_name, e)
             return
         try:
             bot_2_move = self.bot_2.make_move(self.move_dict_2)
         except BaseException as e:
-            self.outcome = "bot_2 threw an exception {}".format(e)
+            self.outcome = "{} threw an exception {}".format(self.bot_2_name, e)
             return
         self.move_dict_1['rounds'].append({'p1': bot_1_move, 'p2': bot_2_move})
         self.move_dict_2['rounds'].append({'p1': bot_2_move, 'p2': bot_1_move})
@@ -69,11 +77,11 @@ class DynamiteRunner:
         if bot_1_move == 'D':
             self.bot_1_dynamites_used += 1
             if self.bot_1_dynamites_used > DYNAMITES:
-                self.outcome = "bot_1 used too many dynamites"
+                self.outcome = "%s used too many dynamites" % self.bot_1_name
         if bot_2_move == 'D':
             self.bot_2_dynamites_used += 1
             if self.bot_2_dynamites_used > DYNAMITES:
-                self.outcome = "bot_2 used too many dynamites"
+                self.outcome = "%s used too many dynamites" % self.bot_2_name
                 if self.bot_1_dynamites_used > DYNAMITES:
                     self.outcome = "both bots used too many dynamites"
 
@@ -100,11 +108,10 @@ class DynamiteRunner:
         if self.print_buffer:
             # Print five lines: bot_1 win flags, bot_1 moves, bot_2 moves, bot_2 win flags, blank
             first_round = self.turn_count - len(self.print_buffer)
-            print('{:4}'.format(first_round) + '      ' +
-                  ''.join([('*' if h[2] == 1 else ' ') for h in self.print_buffer]))
-            print('{:10}'.format('bot_1') + ''.join([h[0] for h in self.print_buffer]))
-            print('{:10}'.format('bot_2') + ''.join([h[1] for h in self.print_buffer]))
-            print('          ' + ''.join([('*' if h[2] == 2 else ' ') for h in self.print_buffer]))
+            print('{:15}'.format(str(first_round)) + ''.join([('*' if h[2] == 1 else ' ') for h in self.print_buffer]))
+            print('{:15}'.format(self.bot_1_name[:14]) + ''.join([h[0] for h in self.print_buffer]))
+            print('{:15}'.format(self.bot_2_name[:14]) + ''.join([h[1] for h in self.print_buffer]))
+            print('               ' + ''.join([('*' if h[2] == 2 else ' ') for h in self.print_buffer]))
             print()
             self.print_buffer = []
 
