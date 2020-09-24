@@ -9,7 +9,8 @@ MAX_COUNT = 2500
 class DynamiteRunner:
 
     def __init__(self):
-        self.move_dict = {'rounds': []}
+        self.move_dict_1 = {'rounds': []}
+        self.move_dict_2 = {'rounds': []}
         self.bot_1 = CycleBackwardsBot()
         self.bot_2 = RandomNoDynamiteBot()
         self.draw_multiplier = 1
@@ -34,9 +35,10 @@ class DynamiteRunner:
         return self.bot_1_wins < WIN_COUNT and self.bot_2_wins < WIN_COUNT
 
     def do_turn(self):
-        bot_1_move = self.bot_1.make_move(self.move_dict)
-        bot_2_move = self.bot_2.make_move(self.move_dict)
-        self.move_dict['rounds'].append({'p1': bot_1_move, 'p2': bot_2_move})
+        bot_1_move = self.bot_1.make_move(self.move_dict_1)
+        bot_2_move = self.bot_2.make_move(self.move_dict_2)
+        self.move_dict_1['rounds'].append({'p1': bot_1_move, 'p2': bot_2_move})
+        self.move_dict_2['rounds'].append({'p1': bot_2_move, 'p2': bot_1_move})
         self.update_win_stats(bot_1_move, bot_2_move)
         self.turn_count += 1
 
