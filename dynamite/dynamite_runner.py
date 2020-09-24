@@ -45,8 +45,16 @@ class DynamiteRunner:
                 self.outcome = "bot_2 wins"
 
     def do_turn(self):
-        bot_1_move = self.bot_1.make_move(self.move_dict_1)
-        bot_2_move = self.bot_2.make_move(self.move_dict_2)
+        try:
+            bot_1_move = self.bot_1.make_move(self.move_dict_1)
+        except BaseException as e:
+            self.outcome = "bot_1 threw an exception {}".format(e)
+            return
+        try:
+            bot_2_move = self.bot_2.make_move(self.move_dict_2)
+        except BaseException as e:
+            self.outcome = "bot_2 threw an exception {}".format(e)
+            return
         self.move_dict_1['rounds'].append({'p1': bot_1_move, 'p2': bot_2_move})
         self.move_dict_2['rounds'].append({'p1': bot_2_move, 'p2': bot_1_move})
         self.track_dynamite_usage(bot_1_move, bot_2_move)
