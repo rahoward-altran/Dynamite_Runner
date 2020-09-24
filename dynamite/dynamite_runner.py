@@ -5,6 +5,7 @@ from dynamite.example_bots import *
 WIN_COUNT = 1000
 MAX_COUNT = 2500
 DYNAMITES = 100
+PRINT_EVERY = 100
 
 class DynamiteRunner:
 
@@ -20,6 +21,7 @@ class DynamiteRunner:
         self.bot_2_dynamites_used = 0
         self.outcome = None
         self.turn_count = 0
+        self.print_buffer = []
         self.win_map = self.load_win_map()
 
     @staticmethod
@@ -30,9 +32,11 @@ class DynamiteRunner:
     def run(self):
         while not self.outcome:
             self.do_turn()
+            self.maybe_print_rounds()
             self.check_if_bot_has_reached_1000_wins()
             if self.turn_count == MAX_COUNT:
                 break
+        self.print_rounds()
         print("bot_1: %i, bot_2: %i, turns: %i" % (self.bot_1_wins, self.bot_2_wins, self.turn_count))
         if self.outcome:
             print(self.outcome)
@@ -76,14 +80,33 @@ class DynamiteRunner:
     def update_win_stats(self, bot_1_move, bot_2_move):
         win_id = self.win_map[bot_1_move][bot_2_move]
         if win_id == 'W':
+            winner = 1
             self.bot_1_wins += self.draw_multiplier
             self.draw_multiplier = 1
         elif win_id == 'L':
+            winner = 2
             self.bot_2_wins += self.draw_multiplier
             self.draw_multiplier = 1
         else:
+            winner = 0
             self.draw_multiplier += 1
+        self.print_buffer.append([bot_1_move, bot_2_move, winner])
 
+    def maybe_print_rounds(self):
+        if len(self.print_buffer) >= PRINT_EVERY:
+            self.print_rounds()
+
+    def print_rounds(self):
+        if self.print_buffer:
+            # Print five lines: bot_1 win flags, bot_1 moves, bot_2 moves, bot_2 win flags, blank
+            first_round = self.turn_count - len(self.print_buffer)
+            print('{:4}'.format(first_round) + '      ' +
+                  ''.join([('*' if h[2] == 1 else ' ') for h in self.print_buffer]))
+            print('{:10}'.format('bot_1') + ''.join([h[0] for h in self.print_buffer]))
+            print('{:10}'.format('bot_2') + ''.join([h[1] for h in self.print_buffer]))
+            print('          ' + ''.join([('*' if h[2] == 2 else ' ') for h in self.print_buffer]))
+            print()
+            self.print_buffer = []
 
 if __name__ == "__main__":
     DynamiteRunner().run()
