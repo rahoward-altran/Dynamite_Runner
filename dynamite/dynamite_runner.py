@@ -50,3 +50,7 @@ class DynamiteRunner:
             self.draw_multiplier = 1
         else:
             self.draw_multiplier += 1
+
+
+if __name__ == "__main__":
+    DynamiteRunner().run()
