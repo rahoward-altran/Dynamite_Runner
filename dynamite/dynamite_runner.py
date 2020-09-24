@@ -44,9 +44,9 @@ class DynamiteRunner:
         win_id = self.win_map[bot_1_move][bot_2_move]
         if win_id == 'W':
             self.bot_1_wins += self.draw_multiplier
-            self.draw_multiplier = 0
+            self.draw_multiplier = 1
         elif win_id == 'L':
             self.bot_2_wins += self.draw_multiplier
-            self.draw_multiplier = 0
+            self.draw_multiplier = 1
         else:
             self.draw_multiplier += 1
