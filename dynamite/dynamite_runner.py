@@ -8,6 +8,7 @@ DYNAMITES = 100
 PRINT_EVERY = 100
 
 class DynamiteRunner:
+    valid_moves = {'R', 'P', 'S', 'D', 'W'}
 
     def __init__(self):
         self.move_dict_1 = {'rounds': []}
@@ -62,10 +63,16 @@ class DynamiteRunner:
         except BaseException as e:
             self.outcome = "{} threw an exception {}".format(self.bot_1_name, e)
             return
+        if not bot_1_move in DynamiteRunner.valid_moves:
+            self.outcome = "{} returned invalid move '{}'".format(self.bot_1_name, bot_1_move)
+            return
         try:
             bot_2_move = self.bot_2.make_move(self.move_dict_2)
         except BaseException as e:
             self.outcome = "{} threw an exception {}".format(self.bot_2_name, e)
+            return
+        if not bot_2_move in DynamiteRunner.valid_moves:
+            self.outcome = "{} returned invalid move '{}'".format(self.bot_2_name, bot_2_move)
             return
         self.move_dict_1['rounds'].append({'p1': bot_1_move, 'p2': bot_2_move})
         self.move_dict_2['rounds'].append({'p1': bot_2_move, 'p2': bot_1_move})
