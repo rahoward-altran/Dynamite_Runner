@@ -3,12 +3,14 @@ import json
 from dynamite.bots.big_snip import BigSnip
 from dynamite.bots.paper_bot import PaperBot
 from dynamite.bots.stoner import Stoner
+from dynamite.bots.pattern import Pattern
 
 from dynamite.bots.random_moves import RandomMoves
 
 from dynamite.bots.arsonist_firefighter import ArsonistFirefighter
 from dynamite.bots.arsonist_fighter import ArsonistFighter
 
+from dynamite.bots.smart_bot import SmartBot
 # from dynamite.example_bots import *
 
 WIN_COUNT = 1000
@@ -21,20 +23,19 @@ class DynamiteRunner:
     valid_moves = {'R', 'P', 'S', 'D', 'W'}
 
     def __init__(self):
-        self.bot_1 = RandomMoves()
-        self.bot_2 = ArsonistFighter()
+        self.bot_1 = Pattern()
+        self.bot_2 = SmartBot()
 
         self.draw_rollover = 0
         self.turn_count = 0
         self.bot_1_wins = 0
         self.bot_2_wins = 0
-        self.bot_1_dynamite_used = 0
-        self.bot_2_dynamite_used = 0
+        self.bot_1_dynamites_used = 0
+        self.bot_2_dynamites_used = 0
         self.invalid_move_count = 0
 
         self.move_dict_bot_1 = {'rounds': []}
         self.move_dict_bot_2 = {'rounds': []}
-
 
         self.draw_count = 0
         self.outcome = None
@@ -44,87 +45,73 @@ class DynamiteRunner:
 
         self.bot_1_name = type(self.bot_1).__name__
         self.bot_2_name = type(self.bot_2).__name__
+
         if self.bot_1_name == self.bot_2_name:
             self.bot_1_name += ' 1'
             self.bot_2_name += ' 2'
 
     @staticmethod
-    def load_win_map():g
+    def load_win_map():
         with open("win_map.json") as json_file:
             return json.load(json_file)
 
     def run(self):
         print("%s vs %s\n" % (self.bot_1_name, self.bot_2_name))
         
-        while self.bot_not_reached_1000_wins() and self.invalid_move_count < 3:
-         # while not self.outcome
-            try:
-                self.do_turn()
-                # self.maybe_print_rounds()
-                # self.check_if_bot_has_reached_1000_wins()
-            
-                if self.turn_count == MAX_COUNT:
-                    break
-                # self.print_rounds()
-            except ValueError:
-                print("No Dynamite Left. Invalid Move")
-                self.invalid_move_count += 1
+        # while self.bot_not_reached_1000_wins():
+        while not self.outcome:
+            self.do_turn()
+            # self.maybe_print_rounds()
+            self.check_if_bot_has_reached_1000_wins()
 
-        print("%s: %i, %s: %i, turns: %i" % (type(self.bot_1).__name__, self.bot_1_wins, type(self.bot_2).__name__, self.bot_2_wins, self.turn_count))
-        # if self.outcome:
-        #    print(self.outcome)
+            if self.turn_count == MAX_COUNT:
+                break
 
+        print("%s: %i, %s: %i, turns: %i" %
+              (self.bot_1_name, self.bot_1_wins, self.bot_2_name, self.bot_2_wins, self.turn_count))
+        if self.outcome:
+            print(self.outcome)
+            print('%s: %i dynamites left; %s: %i dynamites left' %
+                  (self.bot_1_name, 100 - self.bot_1_dynamites_used,
+                   self.bot_2_name, 100 - self.bot_2_dynamites_used))
 
-        if self.bot_not_reached_1000_wins():
-            print("Max turns reached! It is a draw!")
-        elif self.bot_1_wins > self.bot_2_wins:
-            print(type(self.bot_1).__name__, " wins!")
-        else:
-            print(type(self.bot_2).__name__, " wins!")
-
-    def bot_not_reached_1000_wins(self):
-        return self.bot_1_wins < WIN_COUNT and self.bot_2_wins < WIN_COUNT
+    def check_if_bot_has_reached_1000_wins(self):
+        if not self.outcome:
+            if self.bot_1_wins >= WIN_COUNT:
+                self.outcome = "%s wins" % self.bot_1_name
+            elif self.bot_2_wins >= WIN_COUNT:
+                self.outcome = "%s wins" % self.bot_2_name
+            elif self.turn_count == MAX_COUNT:
+                self.outcome = "It is a draw"
 
     def do_turn(self):
-        bot_1_move = self.bot_1.make_move(self.move_dict_bot_1)
-        bot_2_move = self.bot_2.make_move(self.move_dict_bot_2)
-        if bot_1_move == "D" and self.bot_1_dynamite_used > 100 or \
-            bot_2_move == "D" and self.bot_2_dynamite_used > 100:
-            raise ValueError
+        # get bot 1 move and validate
+        try:
+            bot_1_move = self.bot_1.make_move(self.move_dict_bot_1)
+        except BaseException as e:
+            self.outcome = "{} threw an exception {}".format(self.bot_1_name, e)
+            return
+        if bot_1_move not in DynamiteRunner.valid_moves:
+            self.outcome = "{} returned invalid move '{}'".format(self.bot_1_name, bot_1_move)
+            return
+        # get bot 2 move and validate
+        try:
+            bot_2_move = self.bot_2.make_move(self.move_dict_bot_2)
+        except BaseException as e:
+            self.outcome = "{} threw an exception {}".format(self.bot_2_name, e)
+            return
+        if bot_2_move not in DynamiteRunner.valid_moves:
+            self.outcome = "{} returned invalid move '{}'".format(self.bot_2_name, bot_2_move)
+            return
+
+        # Check they aren't using too many dynamites
+        self.track_dynamite_usage(bot_1_move, bot_2_move)
+
         self.move_dict_bot_1['rounds'].append({'p1': bot_1_move, 'p2': bot_2_move})
-==========================   
-           
-#    def check_if_bot_has_reached_1000_wins(self):
-#        if not self.outcome:
-#            if self.bot_1_wins >= WIN_COUNT:
-#                self.outcome = "%s wins" % self.bot_1_name
-#            elif self.bot_2_wins >= WIN_COUNT:
-#                self.outcome = "%s wins" % self.bot_2_name
-#
-#    def do_turn(self):
-#        try:
-#            bot_1_move = self.bot_1.make_move(self.move_dict_1)
-#        except BaseException as e:
-#            self.outcome = "{} threw an exception {}".format(self.bot_1_name, e)
-#            return
-#        if bot_1_move not in DynamiteRunner.valid_moves:
-#            self.outcome = "{} returned invalid move '{}'".format(self.bot_1_name, bot_1_move)
-#            return
-#        try:
-#            bot_2_move = self.bot_2.make_move(self.move_dict_2)
-#        except BaseException as e:
-#            self.outcome = "{} threw an exception {}".format(self.bot_2_name, e)
-#            return
-#        if bot_2_move not in DynamiteRunner.valid_moves:
-#            self.outcome = "{} returned invalid move '{}'".format(self.bot_2_name, bot_2_move)
-#            return
-#        self.move_dict_1['rounds'].append({'p1': bot_1_move, 'p2': bot_2_move})
-#        self.move_dict_2['rounds'].append({'p1': bot_2_move, 'p2': bot_1_move})
-#        self.track_dynamite_usage(bot_1_move, bot_2_move)
-#>>>>>>> 02c5f15e06a0ff5f85cf8a0f2f8085e24792373c
-        #self.update_win_stats(bot_1_move, bot_2_move)
-        #self.update_dynamite_count(bot_1_move, bot_2_move)
-        #self.turn_count += 1
+        self.move_dict_bot_2['rounds'].append({'p1': bot_2_move, 'p2': bot_1_move})
+
+        self.update_win_stats(bot_1_move, bot_2_move)
+        self.turn_count += 1
 
     def track_dynamite_usage(self, bot_1_move, bot_2_move):
         if bot_1_move == 'D':
@@ -152,13 +139,14 @@ class DynamiteRunner:
             winner = 0
             self.draw_count += 1
             self.draw_rollover += 1
+
         self.print_buffer.append([bot_1_move, bot_2_move, winner])
 
-    def update_dynamite_count(self, bot_1_move, bot_2_move):
-        if bot_1_move == "D":
-            self.bot_1_dynamite_used += 1
-        if bot_2_move == "D":
-            self.bot_2_dynamite_used += 1
+    # def update_dynamite_count(self, bot_1_move, bot_2_move):
+    #     if bot_1_move == "D":
+    #         self.bot_1_dynamites_used += 1
+    #     if bot_2_move == "D":
+    #         self.bot_2_dynamites_used += 1
    
     def maybe_print_rounds(self):
         if len(self.print_buffer) >= PRINT_EVERY:
