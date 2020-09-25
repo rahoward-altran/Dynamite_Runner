@@ -7,6 +7,7 @@ MAX_COUNT = 2500
 DYNAMITES = 100
 PRINT_EVERY = 100
 
+
 class DynamiteRunner:
     valid_moves = {'R', 'P', 'S', 'D', 'W'}
 
@@ -18,6 +19,7 @@ class DynamiteRunner:
         self.draw_multiplier = 1
         self.bot_1_wins = 0
         self.bot_2_wins = 0
+        self.draw_count = 0
         self.bot_1_dynamites_used = 0
         self.bot_2_dynamites_used = 0
         self.outcome = None
@@ -45,8 +47,9 @@ class DynamiteRunner:
             if self.turn_count == MAX_COUNT:
                 break
         self.print_rounds()
-        print("%s: %i, %s: %i, turns: %i" % (self.bot_1_name, self.bot_1_wins,
-                                             self.bot_2_name, self.bot_2_wins, self.turn_count))
+        print("%s: %i, %s: %i, draws: %i, turns: %i" % (self.bot_1_name, self.bot_1_wins,
+                                                        self.bot_2_name, self.bot_2_wins, self.draw_count,
+                                                        self.turn_count))
         if self.outcome:
             print(self.outcome)
 
@@ -63,7 +66,7 @@ class DynamiteRunner:
         except BaseException as e:
             self.outcome = "{} threw an exception {}".format(self.bot_1_name, e)
             return
-        if not bot_1_move in DynamiteRunner.valid_moves:
+        if bot_1_move not in DynamiteRunner.valid_moves:
             self.outcome = "{} returned invalid move '{}'".format(self.bot_1_name, bot_1_move)
             return
         try:
@@ -71,7 +74,7 @@ class DynamiteRunner:
         except BaseException as e:
             self.outcome = "{} threw an exception {}".format(self.bot_2_name, e)
             return
-        if not bot_2_move in DynamiteRunner.valid_moves:
+        if bot_2_move not in DynamiteRunner.valid_moves:
             self.outcome = "{} returned invalid move '{}'".format(self.bot_2_name, bot_2_move)
             return
         self.move_dict_1['rounds'].append({'p1': bot_1_move, 'p2': bot_2_move})
@@ -104,6 +107,7 @@ class DynamiteRunner:
             self.draw_multiplier = 1
         else:
             winner = 0
+            self.draw_count += 1
             self.draw_multiplier += 1
         self.print_buffer.append([bot_1_move, bot_2_move, winner])
 
@@ -121,6 +125,7 @@ class DynamiteRunner:
             print('               ' + ''.join([('*' if h[2] == 2 else ' ') for h in self.print_buffer]))
             print()
             self.print_buffer = []
+
 
 if __name__ == "__main__":
     DynamiteRunner().run()
