@@ -5,63 +5,58 @@ FULL_DYNAMITE = 100
 DYNAMITE_THRESHOLD = 10
 CONFIDENCE_THRESHOLD = 5
 NO_CONFIDENCE = 0
+A_LOWER = 96
 
 class SmartBot:
     def __init__(self):
         # todo: reconsider? always not use at least one dynamite so opponent's logic can't be certain I won't use it
-        self.dynamite_left = FULL_DYNAMITE -1
+        self.dynamite_left = FULL_DYNAMITE - 1
+        self.last_10 = []
         self.opponent_dynamite_left = FULL_DYNAMITE
         self.opponent_move_usage = {'W': 0, 'D': 0, 'R': 0, 'S': 0, 'P': 0}
         self.opponent_fav_move = ("", 0)
-        self.confidence = 0  # finite state of faith in opponents fav move
-        # self.opponents_last_10 = ""
+        self.confidence = 0  # state of faith in opponents fav move
+        self.opponents_last_10 = []
         self.win_map = {
-            "R": {
-                "R": "D",
-                "P": "L",
-                "S": "W",
-                "D": "L",
-                "W": "W"
-            },
-            "P": {
-                "R": "W",
-                "P": "D",
-                "S": "L",
-                "D": "L",
-                "W": "W"
-            },
-            "S": {
-                "R": "L",
-                "P": "W",
-                "S": "D",
-                "D": "L",
-                "W": "W"
-            },
-            "D": {
-                "R": "W",
-                "P": "W",
-                "S": "W",
-                "D": "D",
-                "W": "L"
-            },
-            "W": {
-                "R": "L",
-                "P": "L",
-                "S": "L",
-                "D": "W",
-                "W": "D"
-            }
+            "R": {"R": "D", "P": "L", "S": "W", "D": "L", "W": "W"},
+            "P": {"R": "W", "P": "D", "S": "L", "D": "L", "W": "W"},
+            "S": {"R": "L", "P": "W", "S": "D", "D": "L", "W": "W"},
+            "D": {"R": "W", "P": "W", "S": "W", "D": "D", "W": "L"},
+            "W": {"R": "L", "P": "L", "S": "L", "D": "W", "W": "D"}
         }
 
     def make_move(self, gamestate):
         self.update_info_on_opponent(gamestate['rounds'])
 
+        # if opponent is playing last move back
+        if self.is_correlation():
+            return self.beat_their_favourite(self.opponents_last_10[-1])
+
         # if confident with fav move play opposite
         # else random - if no dynamite don't play water
         if self.confidence >= CONFIDENCE_THRESHOLD:
-            return self.beat_their_favourite()
+            move = self.beat_their_favourite()
         else:
-            return self.random_attack()
+            move = self.random_attack()
+        self.update_last_10(move)
+        return move
+
+    def is_correlation(self):
+        try:
+            a = self.last_10[:-1]
+            b = self.opponents_last_10[1:]
+            r = [x for x in range(len(a)) if a[x: x + len(b)] == b]
+            # print("-------------------")
+            # print(self.last_10)
+            # print(self.opponents_last_10)
+            # print(a)
+            # print(b)
+            # print(r)
+            if not r:
+                return False
+            return True
+        except IndexError:
+            return False
 
     def update_info_on_opponent(self, rounds_list):
         try:
@@ -70,6 +65,14 @@ class SmartBot:
             # round list is empty
             return
 
+        self.update_opponent_move_usage(last_round)
+        self.update_opponent_fav_move()
+
+        if len(self.opponents_last_10) == 10:
+            self.opponents_last_10.pop(0)
+        self.opponents_last_10.append(last_round['p2'])
+
+    def update_opponent_move_usage(self, last_round):
         if last_round['p2'] == "D":
             self.opponent_dynamite_left -= 1
             self.opponent_move_usage["D"] += 1
@@ -81,8 +84,6 @@ class SmartBot:
             self.opponent_move_usage["P"] += 1
         elif last_round['p2'] == "S":
             self.opponent_move_usage["S"] += 1
-
-        self.update_opponent_fav_move()
 
     def update_opponent_fav_move(self):
         most_used_move = self.opponent_fav_move[0]
@@ -111,29 +112,11 @@ class SmartBot:
             self.confidence += 1
         self.opponent_fav_move = (most_used_move, most_used_move_value)
 
-    def random_attack(self):
-        # low confidence - higher use of dynamite if available
-        if self.dynamite_left == EMPTY_DYNAMITE:
-            move = random.randint(1, 3)
-        else:
-            move = random.randint(1, 20)
-        # Never uses water when not confident. risks are too high
-        # todo:  reconsider
-        if move == 0:
-            return "W"
-        elif move == 1:
-            return "R"
-        elif move == 2:
-            return "P"
-        elif move == 3:
-            return "S"
-        elif move >= 4:
-            self.dynamite_left -= 1
-            return "D"
-
-    def beat_their_favourite(self):
+    def beat_their_favourite(self, fav=None):
+        if fav is None:
+            fav = self.opponent_fav_move[0]
         winning_moves = []
-        for move, result in self.win_map[self.opponent_fav_move[0]].items():
+        for move, result in self.win_map[fav].items():
             if result == "W" or result == "D":
                 continue
             # only consider winning moves (moves that will make their favourite move lose)
@@ -154,10 +137,27 @@ class SmartBot:
         winning_moves.remove('D') # todo: reconsider - might as well use them all
         return winning_moves[0]
 
+    def random_attack(self):
+        # low confidence - higher use of dynamite if available
+        if self.dynamite_left == EMPTY_DYNAMITE:
+            move = random.randint(1, 3)
+        else:
+            move = random.randint(1, 20)
+        # Never uses water when not confident. risks are too high
+        # todo:  reconsider
+        if move == 0:
+            return "W"
+        elif move == 1:
+            return "R"
+        elif move == 2:
+            return "P"
+        elif move == 3:
+            return "S"
+        elif move >= 4:
+            self.dynamite_left -= 1
+            return "D"
 
-
-
-
-
-
-
+    def update_last_10(self, new_move):
+        if len(self.last_10) == 10:
+            self.last_10.pop(0)
+        self.last_10.append(new_move)

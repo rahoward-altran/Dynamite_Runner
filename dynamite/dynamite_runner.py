@@ -23,7 +23,7 @@ class DynamiteRunner:
     valid_moves = {'R', 'P', 'S', 'D', 'W'}
 
     def __init__(self):
-        self.bot_1 = ArsonistFighter()
+        self.bot_1 = CopyOpponentsLastMoveBot()
         self.bot_2 = SmartBot()
 
         self.draw_rollover = 0
