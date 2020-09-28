@@ -9,6 +9,7 @@ from dynamite.bots.random_moves import RandomMoves
 
 from dynamite.bots.arsonist_firefighter import ArsonistFirefighter
 from dynamite.bots.arsonist_fighter import ArsonistFighter
+from dynamite.bots.bot import NewBot
 
 from dynamite.bots.smart_bot import SmartBot
 from dynamite.bots.example_bots import *
@@ -24,7 +25,7 @@ class DynamiteRunner:
 
     def __init__(self):
         self.bot_1 = CopyOpponentsLastMoveBot()
-        self.bot_2 = SmartBot()
+        self.bot_2 = NewBot()
 
         self.draw_rollover = 0
         self.turn_count = 0

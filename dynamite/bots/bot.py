@@ -4,20 +4,27 @@ EMPTY_DYNAMITE = 0
 FULL_DYNAMITE = 100
 DYNAMITE_THRESHOLD = 5
 CONFIDENCE_THRESHOLD = 5
+CONFIDENCE_HIT = 3
 NO_CONFIDENCE = 0
 A_LOWER = 96
 HIGH_CHANCE = 20
 
-class SmartBot:
+WINDOW_SIZE = 10
+
+class NewBot:
     def __init__(self):
         # todo: reconsider? always not use at least one dynamite so opponent's logic can't be certain I won't use it
         self.dynamite_left = FULL_DYNAMITE - 1
-        self.last_10 = []
         self.opponent_dynamite_left = FULL_DYNAMITE
+
         self.opponent_move_usage = {'W': 0, 'D': 0, 'R': 0, 'S': 0, 'P': 0}
         self.opponent_fav_move = ("", 0)
         self.confidence = 0  # state of faith in opponents fav move
-        self.opponents_last_10 = []
+
+        self.my_last_moves_window = []
+        self.opponent_last_move_window = []
+        self.last_results_window = []
+
         self.win_map = {
             "R": {"R": "D", "P": "L", "S": "W", "D": "L", "W": "W"},
             "P": {"R": "W", "P": "D", "S": "L", "D": "L", "W": "W"},
@@ -27,11 +34,10 @@ class SmartBot:
         }
 
     def make_move(self, gamestate):
-        self.update_info_on_opponent(gamestate['rounds'])
+        self.update_knowledge(gamestate['rounds'])
 
-        # if opponent is playing last move back
         if self.is_correlation():
-            return self.beat_their_favourite(self.opponents_last_10[-1])
+            return self.beat_their_favourite(self.opponent_last_move_window[-1])
 
         # if confident with fav move play opposite
         # else random - if no dynamite don't play water
@@ -42,30 +48,19 @@ class SmartBot:
         self.update_last_10(move)
         return move
 
-    def is_correlation(self):
-        try:
-            a = self.last_10[:-1]
-            b = self.opponents_last_10[1:]
-            r = [x for x in range(len(a)) if a[x: x + len(b)] == b]
-            if not r:
-                return False
-            return True
-        except IndexError:
-            return False
-
-    def update_info_on_opponent(self, rounds_list):
-        try:
-            last_round = rounds_list[-1]
-        except IndexError:
-            # round list is empty
+    def update_knowledge(self, rounds_list):
+        if not rounds_list:
             return
+        last_round = rounds_list[-1]
 
         self.update_opponent_move_usage(last_round)
         self.update_opponent_fav_move()
 
-        if len(self.opponents_last_10) == 10:
-            self.opponents_last_10.pop(0)
-        self.opponents_last_10.append(last_round['p2'])
+        if len(self.opponent_last_move_window) == WINDOW_SIZE:
+            self.opponent_last_move_window.pop(0)
+            self.last_results_window.pop(0)
+        self.opponent_last_move_window.append(last_round['p2'])
+        self.last_results_window.append(self.get_result(last_round))
 
     def update_opponent_move_usage(self, last_round):
         if last_round['p2'] == "D":
@@ -83,9 +78,8 @@ class SmartBot:
     def update_opponent_fav_move(self):
         most_used_move = self.opponent_fav_move[0]
         most_used_move_value = self.opponent_fav_move[1]
-
-        # if they have used all there dynamite then it will never be their favourite move again
-        # remove from list so don't risk using water after last dynamite has been played
+        # if they have used most of their dynamite then it will never be their favourite move again
+        # remove from list so don't risk using water
         if self.opponent_dynamite_left < DYNAMITE_THRESHOLD:
             self.opponent_move_usage['D'] = 0
             # if it was their favourite - reset favourite
@@ -105,6 +99,9 @@ class SmartBot:
         else:
             #no change in favourite confidence grows
             self.confidence += 1
+            # but if we lost playing 'beat the favourite last time
+            if self.last_results_window[-1] == "L":
+                self.confidence = max(self.confidence - CONFIDENCE_HIT, 0)
         self.opponent_fav_move = (most_used_move, most_used_move_value)
 
     def beat_their_favourite(self, fav=None):
@@ -135,7 +132,7 @@ class SmartBot:
     def random_attack(self):
         # get last move don't use dynamite twice in a row
         try:
-            if self.last_10[-1] == "D":
+            if self.my_last_moves_window[-1] == "D":
                 chance = 0
             else:
                 chance = HIGH_CHANCE
@@ -148,9 +145,9 @@ class SmartBot:
             move = random.randint(1, HIGH_CHANCE)
         # Never uses water when not confident. risks are too high
         # todo:  reconsider
-        if move == 0:
-            return "W"
-        elif move == 1:
+        # if move == 0:
+        #     return "W"
+        if move == 1:
             return "R"
         elif move == 2:
             return "P"
@@ -161,6 +158,20 @@ class SmartBot:
             return "D"
 
     def update_last_10(self, new_move):
-        if len(self.last_10) == 10:
-            self.last_10.pop(0)
-        self.last_10.append(new_move)
+        if len(self.my_last_moves_window) == WINDOW_SIZE:
+            self.my_last_moves_window.pop(0)
+        self.my_last_moves_window.append(new_move)
+
+    def get_result(self, last_round):
+        return self.win_map[last_round['p1']][last_round['p2']]
+
+    def is_correlation(self):
+        try:
+            a = self.my_last_moves_window[:-1]
+            b = self.opponent_last_move_window[1:]
+            r = [x for x in range(len(a)) if a[x: x + len(b)] == b]
+            if not r:
+                return False
+            return True
+        except IndexError:
+            return False
