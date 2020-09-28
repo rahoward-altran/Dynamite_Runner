@@ -11,7 +11,7 @@ from dynamite.bots.arsonist_firefighter import ArsonistFirefighter
 from dynamite.bots.arsonist_fighter import ArsonistFighter
 
 from dynamite.bots.smart_bot import SmartBot
-# from dynamite.example_bots import *
+from dynamite.bots.example_bots import *
 
 WIN_COUNT = 1000
 MAX_COUNT = 2500
@@ -23,7 +23,7 @@ class DynamiteRunner:
     valid_moves = {'R', 'P', 'S', 'D', 'W'}
 
     def __init__(self):
-        self.bot_1 = Pattern()
+        self.bot_1 = ArsonistFighter()
         self.bot_2 = SmartBot()
 
         self.draw_rollover = 0
@@ -141,12 +141,6 @@ class DynamiteRunner:
             self.draw_rollover += 1
 
         self.print_buffer.append([bot_1_move, bot_2_move, winner])
-
-    # def update_dynamite_count(self, bot_1_move, bot_2_move):
-    #     if bot_1_move == "D":
-    #         self.bot_1_dynamites_used += 1
-    #     if bot_2_move == "D":
-    #         self.bot_2_dynamites_used += 1
    
     def maybe_print_rounds(self):
         if len(self.print_buffer) >= PRINT_EVERY:

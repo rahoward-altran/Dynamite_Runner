@@ -4,7 +4,7 @@ class Pattern:
         self.i = 0
 
     def make_move(self, gamestate):
-        if self.dynamite_left != 0:
+        if self.dynamite_left == 0:
             self.i = (self.i+1) % 4
         else:
             self.i = (self.i+1) % 5

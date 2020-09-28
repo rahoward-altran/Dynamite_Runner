@@ -1,11 +1,16 @@
 import random
 
+EMPTY_DYNAMITE = 0
+FULL_DYNAMITE = 100
+DYNAMITE_THRESHOLD = 10
+CONFIDENCE_THRESHOLD = 5
+NO_CONFIDENCE = 0
 
 class SmartBot:
     def __init__(self):
         # todo: reconsider? always not use at least one dynamite so opponent's logic can't be certain I won't use it
-        self.dynamite_left = 99
-        self.opponent_dynamite_left = 100
+        self.dynamite_left = FULL_DYNAMITE -1
+        self.opponent_dynamite_left = FULL_DYNAMITE
         self.opponent_move_usage = {'W': 0, 'D': 0, 'R': 0, 'S': 0, 'P': 0}
         self.opponent_fav_move = ("", 0)
         self.confidence = 0  # finite state of faith in opponents fav move
@@ -52,11 +57,11 @@ class SmartBot:
         self.update_info_on_opponent(gamestate['rounds'])
 
         # if confident with fav move play opposite
-        if self.confidence > 4:
+        # else random - if no dynamite don't play water
+        if self.confidence >= CONFIDENCE_THRESHOLD:
             return self.beat_their_favourite()
         else:
             return self.random_attack()
-        # else random - if no dynamite don't play water
 
     def update_info_on_opponent(self, rounds_list):
         try:
@@ -85,7 +90,7 @@ class SmartBot:
 
         # if they have used all there dynamite then it will never be their favourite move again
         # remove from list so don't risk using water after last dynamite has been played
-        if self.opponent_dynamite_left == 0:
+        if self.opponent_dynamite_left < DYNAMITE_THRESHOLD:
             self.opponent_move_usage['D'] = 0
             # if it was their favourite - reset favourite
             if most_used_move == 'D':
@@ -100,7 +105,7 @@ class SmartBot:
 
         if self.opponent_fav_move[0] != most_used_move:
             #change in favourite
-            self.confidence = 0
+            self.confidence = NO_CONFIDENCE
         else:
             #no change in favourite confidence grows
             self.confidence += 1
@@ -108,7 +113,7 @@ class SmartBot:
 
     def random_attack(self):
         # low confidence - higher use of dynamite if available
-        if self.dynamite_left == 0:
+        if self.dynamite_left == EMPTY_DYNAMITE:
             move = random.randint(1, 3)
         else:
             move = random.randint(1, 20)
